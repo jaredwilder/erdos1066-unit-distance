@@ -1,0 +1,32 @@
+name: One-shot source migration
+
+on:
+  push:
+    paths:
+      - '.github/workflows/migrate-source.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Copy exact #1066 sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/jaredwilder/unpublished-math-papers.git /tmp/papers
+          git clone --depth 1 https://github.com/jaredwilder/lean-contributions.git /tmp/lean
+          mkdir -p barriers formalization
+          cp -R /tmp/papers/erdos1066-lattice-barriers/. barriers/
+          cp -R /tmp/lean/erdos1066-first-formalization/. formalization/
+          rm .github/workflows/migrate-source.yml
+          git config user.name "Jared Wilder release migration"
+          git config user.email "jared@jaredwilder.com"
+          git add -A
+          git commit -m "Migrate exact Erdős 1066 barrier and formalization sources"
+          git push
