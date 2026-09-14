@@ -1,10 +1,8 @@
-name: Erdős 1066 Formalization Replay
+name: Erdos 1066 Replay
 
-on:
+"on":
   push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -13,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install pinned Lean
+      - name: Install Lean 4.27.0
         run: |
           curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
@@ -21,53 +19,30 @@ jobs:
           "$HOME/.elan/bin/elan" default "$(cat lean-toolchain)"
           "$HOME/.elan/bin/lean" --version
 
-      - name: Resolve pinned FormalConjectures dependency
+      - name: Resolve pinned FormalConjectures
         run: lake update
 
-      - name: Fetch dependency cache
+      - name: Fetch cache
         run: lake exe cache get
 
-      - name: Compile full statement/barrier module
+      - name: Compile full module
         run: lake env lean formalization/Erdos1066.lean
 
-      - name: Audit proved theorem dependency closure
+      - name: Build axiom audit source
         run: |
           cp formalization/Erdos1066.lean /tmp/Erdos1066Audit.lean
-          cat >> /tmp/Erdos1066Audit.lean <<'LEAN'
+          python -c 'p="/tmp/Erdos1066Audit.lean"; names=["indepCards_bddAbove","zero_mem_indepCards","card_le_alpha","alpha_le_card","exists_indep_card_eq_alpha","g_le_alpha","exists_indep_g","card_le_three_mul_alpha_of_threeColouring","threeColouring_cannot_beat_pach_toth","dist_pt_sq","dist_latticePoint_sq","triangularLattice_colouring_proper","latticeColouring_proper","one_le_latticeNorm","latticePoint_admissible","unit_triangle","unit_triangle_circumradius_sq"]; open(p,"a",encoding="utf-8").write("\n"+"\n".join("#print axioms Erdos1066."+n for n in names)+"\n")'
 
-#print axioms Erdos1066.indepCards_bddAbove
-#print axioms Erdos1066.zero_mem_indepCards
-#print axioms Erdos1066.card_le_alpha
-#print axioms Erdos1066.alpha_le_card
-#print axioms Erdos1066.exists_indep_card_eq_alpha
-#print axioms Erdos1066.g_le_alpha
-#print axioms Erdos1066.exists_indep_g
-#print axioms Erdos1066.card_le_three_mul_alpha_of_threeColouring
-#print axioms Erdos1066.threeColouring_cannot_beat_pach_toth
-#print axioms Erdos1066.dist_pt_sq
-#print axioms Erdos1066.dist_latticePoint_sq
-#print axioms Erdos1066.triangularLattice_colouring_proper
-#print axioms Erdos1066.latticeColouring_proper
-#print axioms Erdos1066.one_le_latticeNorm
-#print axioms Erdos1066.latticePoint_admissible
-#print axioms Erdos1066.unit_triangle
-#print axioms Erdos1066.unit_triangle_circumradius_sq
-LEAN
+      - name: Audit 17 proved theorems
+        run: |
           lake env lean /tmp/Erdos1066Audit.lean 2>&1 | tee /tmp/axioms.txt
-          echo '--- axiom audit ---'
-          grep "depends on axioms" /tmp/axioms.txt || true
-          if grep -q 'sorryAx' /tmp/axioms.txt; then
-            echo 'A theorem advertised as PROVEN depends on sorryAx' >&2
+          if grep -q sorryAx /tmp/axioms.txt; then
+            echo "FAIL: advertised proved theorem depends on sorryAx" >&2
             exit 1
           fi
+          grep "depends on axioms" /tmp/axioms.txt
+          echo "PASS: no advertised proved theorem depends on sorryAx"
 
-      - name: Audit explicit admission surface
+      - name: Audit local escape surface
         run: |
-          python - <<'PY'
-          import re
-          from pathlib import Path
-          text = Path('formalization/Erdos1066.lean').read_text(encoding='utf-8')
-          assert not re.search(r'^\s*axiom\s+', text, flags=re.M)
-          assert not re.search(r'^\s*unsafe\s+', text, flags=re.M)
-          print('PASS: no project axiom or unsafe declaration; open obligations remain explicit sorry declarations')
-          PY
+          python -c 'import re,pathlib; t=pathlib.Path("formalization/Erdos1066.lean").read_text(); assert not re.search(r"^\s*axiom\s+",t,re.M); assert not re.search(r"^\s*unsafe\s+",t,re.M); print("PASS: no local axiom or unsafe declaration")'
