@@ -22,8 +22,13 @@ jobs:
       - name: Resolve pinned FormalConjectures
         run: lake update
 
-      - name: Fetch cache
+      - name: Fetch Mathlib cache
         run: lake exe cache get
+
+      - name: Build pinned FormalConjectures support libraries
+        run: |
+          cd .lake/packages/formal_conjectures
+          lake build FormalConjecturesUtil FormalConjecturesForMathlib
 
       - name: Compile full module
         run: lake env lean formalization/Erdos1066.lean
