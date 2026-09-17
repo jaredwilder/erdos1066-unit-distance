@@ -1,19 +1,30 @@
-# Erdős #1066 — unit-distance independent-set program
+# Erdős #1066 — Unit-Distance Graphs
 
-**Author:** Jared Wilder  
-**Status:** formalization / barrier / explicit-obligation program; the parent open problem is **not claimed solved**.
+**Jared Wilder**
 
-This repository is the canonical public home for the estate's #1066 work on unit-distance graphs and independent-set bounds. It consolidates the substantial FormalConjectures-style module, proved API/local barriers, exact finite checks, and explicitly unfinished obligations.
+Formal and computational work on Erdős Problem #1066, centered on independent-set bounds in unit-distance graphs.
 
-## Reading rule
+This repository collects the project’s Lean formalization, exact finite checks, structural barriers, and remaining proof obligations in one place. The emphasis is on reusable mathematics: statements, proved lemmas, explicit counterpressure on failed routes, and machine-checkable artifacts.
 
-Statement formalization is not theorem proof. Kernel-clean API lemmas are separated from open conjecture statements, compiler-trusted computations, and unfinished proof obligations.
+## Contents
 
-## Source layout
+- `formalization/` — FormalConjectures-style Lean statements and proved supporting lemmas.
+- `barriers/` — structural and local obstructions developed during the attack.
+- finite checks and supporting artifacts used to test candidate arguments.
 
-Exact public source bytes are migrated under:
+## Mathematical status
 
-- `barriers/` — `unpublished-math-papers/erdos1066-lattice-barriers/`;
-- `formalization/` — `lean-contributions/erdos1066-first-formalization/`.
+The repository contains proved intermediate results and formalized reductions toward Erdős #1066. The full parent problem remains open here; open obligations are kept explicit in the source rather than mixed with proved lemmas.
 
-The repository keeps proved/open boundaries explicit rather than letting a large Lean surface imply a closure claim.
+## Verification
+
+Lean sources are intended to make the proof boundary mechanically visible: proved declarations compile, while conjectural or unfinished statements are identified at the point where they enter the argument.
+
+## Provenance
+
+This repository consolidates material previously released across the broader Wilder mathematics estate, including:
+
+- `unpublished-math-papers/erdos1066-lattice-barriers/`
+- `lean-contributions/erdos1066-first-formalization/`
+
+The goal of this repository is a clean problem-level reading surface for the #1066 work.
