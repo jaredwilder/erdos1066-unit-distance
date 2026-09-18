@@ -1,101 +1,115 @@
-# Erdős #1066 — triangular-lattice and 3-colourability barriers
+# Triangular-lattice barriers for Erdős #1066
 
-**Author:** Jared Wilder  
-**Campaign date:** 2026-07-25  
-**Public release:** 2026-09-11
+Erdős #1066 asks for the asymptotic guaranteed independent-set fraction in unit-distance graphs formed by planar point sets whose pairwise distances are at least one.
 
-## Problem
+This note collects several elementary obstructions showing why the triangular lattice and related three-colorable constructions cannot by themselves improve the known upper-construction regime.
 
-Erdős #1066 asks about the asymptotic guaranteed independent-set fraction in unit-distance graphs formed by `n` planar points whose pairwise distances are at least one.
+## 1. Three-colorable configurations have independence ratio at least one third
 
-The source campaign formalized the problem and proved a collection of barrier lemmas in Lean. This release does **not** claim to solve #1066 or to move the published asymptotic bounds.
+The Lean theorem
 
-## Lean-certified barrier package
+```text
+card_le_three_mul_alpha_of_threeColouring
+```
 
-The source records the following theorem declarations as sorry-free, with independently probed axiom footprint
+proves that for a finite graph with a proper three-coloring,
 
-`[propext, Classical.choice, Quot.sound]`.
+\[
+|P|\le3\alpha(P).
+\]
 
-### B1 — any proper 3-colouring forces a one-third independent set
+Equivalently,
 
-`card_le_three_mul_alpha_of_threeColouring`
+\[
+\alpha(P)\ge |P|/3.
+\]
 
-For a finite graph with a proper 3-colouring,
+Thus any construction that remains three-colorable cannot realize an independent-set ratio below `1/3`.
 
-`|P| <= 3 * alpha(P)`.
+## 2. The unit triangular lattice is three-colorable
 
-Equivalently, one colour class has size at least `|P|/3`.
+For integers `x,y`, the arithmetic core is
 
-### B2 core — arithmetic obstruction on the triangular lattice
+\[
+x^2+xy+y^2=1
+\quad\Longrightarrow\quad
+3\nmid(x-y).
+\]
 
-`triangularLattice_colouring_proper`
+This is formalized as
 
-For integers `x,y`,
+```text
+triangularLattice_colouring_proper.
+```
 
-`x^2 + xy + y^2 = 1`
+Coloring a lattice point with coordinates `(a,b)` by
 
-implies
+\[
+(a-b)\bmod3
+\]
 
-`3 ∤ (x-y)`.
+therefore separates every pair at unit distance. The geometric theorem
 
-This is the arithmetic core behind the standard 3-colouring of the triangular lattice by `(a-b) mod 3`.
+```text
+latticeColouring_proper
+```
 
-### B2 geometric — triangular-lattice unit-distance colouring
+formalizes exactly this statement.
 
-`latticeColouring_proper`
+Hence every finite unit-distance graph induced by triangular-lattice points is three-colorable and has an independent set containing at least one third of its vertices.
 
-Triangular-lattice points at Euclidean distance exactly one receive different colours under
+## 3. Unit equilateral triangles have circumradius below one
 
-`(a-b) mod 3`.
+For the standard unit equilateral triangle, the formal theorem
 
-Hence every finite unit-distance graph induced by triangular-lattice points is 3-colourable.
+```text
+unit_triangle_circumradius_sq
+```
 
-### B3 core — unit equilateral triangle circumradius
+proves that the squared circumradius is
 
-`unit_triangle_circumradius_sq`
+\[
+\boxed{1/3},
+\]
 
-The squared circumradius of a unit equilateral triangle is exactly
+so the circumradius is strictly less than one.
 
-`1/3 < 1`.
+The supporting theorem `unit_triangle` verifies the unit equilateral geometry, and `latticePoint_admissible` establishes the minimum-distance condition for lattice subsets.
 
-The source also records the supporting theorem `latticePoint_admissible`.
+## Consequence for lattice-based constructions
 
-### Barrier consequence
+The triangular lattice is therefore structurally constrained in two independent ways:
 
-`threeColouring_cannot_beat_pach_toth`
+- its unit-distance graph has a proper three-coloring;
+- the local equilateral geometry has covering radius `1/sqrt(3)` at the triangle level.
 
-Any configuration that remains 3-colourable cannot improve an upper construction wall below `1/3`; in particular the triangular lattice cannot be the mechanism for beating a `5/16` asymptotic target.
+The first point alone already shows that a purely three-colorable lattice construction cannot lower the independent-set ratio below `1/3`.
 
-The exact published-bound bookkeeping in the source is left external to these local barrier proofs.
+## Additional exact checks
 
-### Definition-faithfulness theorem
+The project also contains exact arithmetic computations for two further local questions:
 
-`exists_indep_g`
+- a degree-six lattice-rigidity check;
+- lattice-closure calculations.
 
-The source records a theorem checking that the formal `sInf` definition used for `g(n)` really represents the largest independent-set size guaranteed across the admissible `n`-point configurations, rather than merely a type-correct surrogate.
+A separate normalization check shows that the Moser-spindle coordinates used in one attempted route are not admissible under the project's exact minimum-distance normalization, so that configuration cannot simply be imported into this formulation without rescaling and rechecking the hypotheses.
 
-## Additional exact computational checks
+These are computational geometry checks and are kept distinct from the Lean theorems above.
 
-The campaign also reports exact multiquadratic-arithmetic checks for two further geometry barriers and a falsification:
+## Formal status
 
-- the degree-six lattice rigidity check (`B4`), performed outside the Lean core;
-- lattice closure (`B5`), also exact-computational;
-- the Moser spindle is **inadmissible at the campaign's exact squared-distance `1/3` geometric normalization**, so its ratio `2/7` cannot be imported as a competing #1066 configuration in that normalization.
+The named theorems in this note have recorded axiom footprint
 
-These computational checks are kept distinct from the Lean-certified theorem list above.
+```text
+{propext, Classical.choice, Quot.sound}.
+```
 
-## Scope / formalization honesty
+The broader `Erdos1066.lean` module also contains the open conjecture, literature bounds, and several unfinished geometric lemmas as explicit `sorry` declarations. Those declarations are not dependencies of the proved barrier theorems listed here.
 
-The original Lean file compiled with nine `sorry` warnings, but the source explicitly records those warnings as belonging to:
+See [`../formalization/README.md`](../formalization/README.md) for the full declaration map.
 
-- the still-open main problem;
-- imported published results / external walls;
-- named bookkeeping steps not claimed proved by this local package.
+## Mathematical scope
 
-The barrier theorem declarations named above were separately probed with `#print axioms` and recorded as sorry-free.
+These results explain limitations of a particular geometric architecture; they are not an asymptotic solution of Erdős #1066. Their value is to remove several natural but insufficient construction routes and to provide reusable formal lemmas about the unit triangular lattice.
 
-This distinction matters: the file as a whole is not claimed completely sorry-free, while the local barrier theorems are.
-
-## Novelty boundary
-
-The source campaign reported that #1066 was absent from the FormalConjectures Erdős-problem corpus at the time and described this as a first formal statement. This public release **does not rely on or upgrade that priority claim**. The mathematical lemmas are published for provenance and reuse; historical/formalization priority remains a separate literature-and-repository question.
+Author: Jared Wilder.
