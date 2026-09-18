@@ -1,160 +1,136 @@
-# EG1066Formal — the first formal (Lean 4) statement of Erdős Problem #1066
+# Lean formalization of Erdős #1066
 
-**File:** `Erdos1066.lean`
-**Date:** 2026-07-25
-**Status of the problem upstream:** *not formalised anywhere.* The FormalConjectures corpus
-(`oracle/runtime/state/formal-conjectures-checkout/FormalConjectures/ErdosProblems/`) contains 509
-`.lean` problem files; `1066` is **not** among them (`1064.lean`, `1065.lean` and `1067.lean` are
-present, `1066.lean` is not — verified by direct `ls`). erdosproblems.com also lists #1066 as
-unformalised.
+`Erdos1066.lean` formalizes the unit-distance independent-set problem and proves a supporting API for its extremal function, triangular-lattice coloring, and elementary geometric barriers.
 
----
+The main open problem is represented as a statement, while proved lemmas and imported/published bounds remain visibly separate in the source.
 
-## The problem
+## Problem statement
 
-Given `n` points in ℝ² with all pairwise distances ≥ 1, form the graph joining pairs at distance
-exactly 1. Let `g(n)` be the largest number such that **every** such configuration has an
-independent set of size ≥ `g(n)`. **Estimate `lim g(n)/n`.**
+Given `n` points in `R^2` with all pairwise distances at least one, join two points when their distance is exactly one. Let `g(n)` be the largest integer such that every admissible `n`-point configuration contains an independent set of size at least `g(n)`.
 
-Published walls:
+The asymptotic problem is to estimate
 
-| Wall | Value | Source |
-|---|---|---|
-| lower | 8/31 ≈ 0.2581 | Swanepoel 2002 (improving 9/35 Csizmadia 1998, 1/4 Pollack 1985) |
-| upper | 5/16 = 0.3125 | Pach–Tóth 1996 (improving 6/19 Chung–Graham / Pach) |
+\[
+\lim_{n\to\infty}\frac{g(n)}n.
+\]
 
----
+The source records the published bounds
 
-## What is in the file
+| bound | value | reference |
+|---|---:|---|
+| lower | `8/31 ≈ 0.2581` | Swanepoel (2002), improving Csizmadia and Pollack |
+| upper | `5/16 = 0.3125` | Pach–Tóth (1996), improving earlier constructions |
 
-Written in FormalConjectures house style (Apache-2.0 header, module docstring with the
-`erdosproblems.com` reference, `@[category ...]` / `@[AMS ...]` attributes, `answer(sorry)` for the
-unknown value, `erdos_1066.variants.*` naming). It imports `FormalConjecturesUtil` and compiles
-inside the FormalConjectures checkout — see *How to verify* below.
+Those literature bounds are represented in Lean but are not reproved in this file.
 
-Ambient space: `ℝ²` = `EuclideanSpace ℝ (Fin 2)` (the corpus' own scoped notation, from
-`FormalConjecturesForMathlib.Geometry.2d`).
+## Definitions
 
-### Definitions (stated — these *are* the deliverable)
+The ambient plane is `EuclideanSpace R (Fin 2)`. The main definitions are:
 
-| Name | Meaning |
+| Lean name | Mathematical meaning |
 |---|---|
-| `Admissible P` | every two distinct points of the finite set `P` are ≥ 1 apart |
-| `IsUDIndep S` | no two distinct points of `S` are at distance exactly 1 (independence in the unit-distance graph) |
-| `indepCards P` | the set of sizes of independent subsets of `P` |
-| `alpha P` | `sSup (indepCards P)` — the independence number |
-| `admissibleAlphas n` | `{alpha P : P admissible, ∣P∣ = n}` |
-| `g n` | `sInf (admissibleAlphas n)` |
-| `pt x y`, `latticePoint a b` | coordinates; the unit triangular lattice `a(1,0) + b(1/2,√3/2)` |
-| `triA`,`triB`,`triC`,`triO` | the unit equilateral triangle and its circumcentre |
+| `Admissible P` | distinct points of `P` are at distance at least one |
+| `IsUDIndep S` | no two distinct points of `S` are at distance exactly one |
+| `indepCards P` | cardinalities of independent subsets of `P` |
+| `alpha P` | independence number of the unit-distance graph on `P` |
+| `admissibleAlphas n` | independence numbers of admissible `n`-point configurations |
+| `g n` | minimum guaranteed independence number |
+| `latticePoint a b` | point in the unit triangular lattice |
+| `triA`, `triB`, `triC`, `triO` | unit equilateral triangle and circumcenter |
 
-### PROVEN (no `sorry`, no axiom)
+## Proved Lean theorems
 
-| Theorem | Content |
-|---|---|
-| `indepCards_bddAbove`, `zero_mem_indepCards` | the `sSup` in `alpha` is well-posed |
-| `card_le_alpha`, `alpha_le_card` | `alpha` is the max over independent subsets |
-| `exists_indep_card_eq_alpha` | the sup is **attained** (`Nat.sSup_mem`) |
-| `g_le_alpha` | `g ∣P∣ ≤ alpha P` for admissible `P` |
-| `exists_indep_g` | **faithfulness check**: every admissible `n`-set has an independent subset of size ≥ `g n` — i.e. the `sInf`-definition really is the "largest guaranteed independent set" of the problem statement |
-| `exists_big_fibre` | pigeonhole: some colour class has ≥ `∣P∣/3` points |
-| **`card_le_three_mul_alpha_of_threeColouring`** | **BARRIER B1**: a proper 3-colouring ⟹ `∣P∣ ≤ 3·alpha P` |
-| `threeColouring_cannot_beat_pach_toth` | B1 consequence: `alpha P > (5/16)·∣P∣`, so a 3-colourable gadget can never move the upper wall |
-| `dist_pt_sq` | squared Euclidean distance in coordinates |
-| `dist_latticePoint_sq` | lattice distance² = `Δa² + ΔaΔb + Δb²` |
-| **`triangularLattice_colouring_proper`** | **BARRIER B2 (core)**: `x²+xy+y² = 1` over ℤ ⟹ `3 ∤ (x−y)` |
-| **`latticeColouring_proper`** | **BARRIER B2 (geometric)**: lattice points at distance exactly 1 get different colours under `(a−b) mod 3` |
-| `latticePoint_admissible` | every subset of the triangular lattice is admissible |
-| `unit_triangle` | `triA,triB,triC` is a unit equilateral triangle |
-| **`unit_triangle_circumradius_sq`** | **BARRIER B3 (core)**: `triO` is equidistant from all three vertices at squared distance exactly `1/3`, and `1/3 < 1` — the circumradius of the unit equilateral triangle is `1/√3 < 1` |
+The following declarations have complete proofs in the file and recorded axiom footprint
 
-### `sorry` — the conjecture and the published results (correctly left open)
-
-| Theorem | Why `sorry` |
-|---|---|
-| `erdos_1066` | **the open problem itself**; the value is `answer(sorry)` |
-| `erdos_1066.variants.limit_exists` | existence of the limit (superadditivity) |
-| `erdos_1066.variants.pollack` | `g(n) ≥ n/4` — needs the Four Colour Theorem |
-| `erdos_1066.variants.swanepoel_lower_bound` | 8/31, Swanepoel 2002 |
-| `erdos_1066.variants.pach_toth_upper_bound` | 5/16, Pach–Tóth 1996 |
-| `erdos_1066.variants.translate_reduction` | the disjoint-translate reduction: `lim ≤ alpha P / ∣P∣` for any finite admissible `P` |
-
-### `sorry` — barrier steps that are genuinely not done
-
-| Theorem | Missing step (stated honestly, not faked) |
-|---|---|
-| `lattice_subset_ratio_ge_one_third` | B2 full form. The colouring is proved proper (`latticeColouring_proper`); the missing part is bookkeeping — turning the `ℤ×ℤ`-indexed colouring into a total function `ℝ² → Fin 3` via a choice of lattice coordinates. Then B1 applies verbatim. |
-| `triangularLattice_covering_radius` | B3 full form. The arithmetic input (circumradius² = 1/3) *is* proved; missing is the covering argument (the lattice triangulates the plane; the farthest point of an acute triangle from all vertices is the circumcentre). |
-| `two_grains_not_admissible` | the geometric consequence of B3. |
-
-**B4 (degree-6 rigidity) was deliberately not attempted** — it needs trigonometry (chord length
-`2 sin(φ/2)`), out of scope for this pass.
-
----
-
-## THE BAR — measured axiom footprint
-
-Nothing here is closed by an axiom that assumes its own conclusion. There are **no `axiom`
-declarations in this file at all** — every unproved statement is an explicit `sorry`, and every
-claim in the PROVEN table above is a real Lean proof. A statement-only formalisation is a genuine
-deliverable; a faked proof is worse than nothing.
-
-This is not an assertion — it was **measured** with `#print axioms` on every theorem in the PROVEN
-table (run on a scratch copy so the deliverable file stays clean):
-
-```
-'Erdos1066.indepCards_bddAbove'                        [propext, Classical.choice, Quot.sound]
-'Erdos1066.zero_mem_indepCards'                        [propext, Classical.choice, Quot.sound]
-'Erdos1066.card_le_alpha'                              [propext, Classical.choice, Quot.sound]
-'Erdos1066.alpha_le_card'                              [propext, Classical.choice, Quot.sound]
-'Erdos1066.exists_indep_card_eq_alpha'                 [propext, Classical.choice, Quot.sound]
-'Erdos1066.g_le_alpha'                                 [propext, Classical.choice, Quot.sound]
-'Erdos1066.exists_indep_g'                             [propext, Classical.choice, Quot.sound]
-'Erdos1066.card_le_three_mul_alpha_of_threeColouring'  [propext, Classical.choice, Quot.sound]   ← B1
-'Erdos1066.threeColouring_cannot_beat_pach_toth'       [propext, Classical.choice, Quot.sound]
-'Erdos1066.dist_pt_sq'                                 [propext, Classical.choice, Quot.sound]
-'Erdos1066.dist_latticePoint_sq'                       [propext, Classical.choice, Quot.sound]
-'Erdos1066.triangularLattice_colouring_proper'         [propext, Classical.choice, Quot.sound]   ← B2 core
-'Erdos1066.latticeColouring_proper'                    [propext, Classical.choice, Quot.sound]   ← B2 geometric
-'Erdos1066.one_le_latticeNorm'                         [propext, Classical.choice, Quot.sound]
-'Erdos1066.latticePoint_admissible'                    [propext, Classical.choice, Quot.sound]
-'Erdos1066.unit_triangle'                              [propext, Classical.choice, Quot.sound]
-'Erdos1066.unit_triangle_circumradius_sq'              [propext, Classical.choice, Quot.sound]   ← B3 core
+```text
+{propext, Classical.choice, Quot.sound}.
 ```
 
-`[propext, Classical.choice, Quot.sound]` is the standard Lean 4 / Mathlib base — **no `sorryAx`,
-no project-local axiom, in any of them.** The `sorry`s are confined to the declarations listed in
-the two `sorry` tables above, and none of the proven theorems depends on any of them.
+### Extremal-function API
 
----
+- `indepCards_bddAbove`, `zero_mem_indepCards` — well-posedness of the finite supremum defining `alpha`;
+- `card_le_alpha`, `alpha_le_card` — `alpha` is the maximum size of an independent subset;
+- `exists_indep_card_eq_alpha` — the maximum is attained;
+- `g_le_alpha` — every admissible configuration has independence number at least `g`;
+- `exists_indep_g` — every admissible `n`-point configuration contains an independent subset of size at least `g n`.
 
-## How to verify
+The last theorem is the source-fidelity check that the formal `sInf` definition of `g` has the intended extremal meaning.
 
-The file has no lakefile of its own (it is a single module, and this directory owns no build
-config). Compile it against the already-built Mathlib in the FormalConjectures checkout:
+### Three-coloring bound
 
-```bash
-cd "oracle/runtime/state/formal-conjectures-checkout"
-PATH="$HOME/.elan/bin:$PATH" lake env lean "<repo>/oracle/math/EG1066Formal/Erdos1066.lean"
+`card_le_three_mul_alpha_of_threeColouring` proves that a proper three-coloring gives
+
+\[
+|P|\le3\alpha(P).
+\]
+
+Consequently any three-colorable construction has independent-set density at least `1/3`; in particular it cannot realize an upper construction below the published `5/16` benchmark.
+
+### Triangular-lattice coloring
+
+The file proves
+
+\[
+x^2+xy+y^2=1\quad\Longrightarrow\quad3\nmid(x-y)
+\]
+
+for integers `x,y`. This is the arithmetic core of the standard triangular-lattice coloring by `(a-b) mod 3`.
+
+`latticeColouring_proper` lifts the arithmetic statement to geometry: triangular-lattice points at Euclidean distance one receive different colors.
+
+`latticePoint_admissible` proves that triangular-lattice subsets satisfy the minimum-distance condition.
+
+### Unit equilateral triangle
+
+`unit_triangle` verifies the unit equilateral configuration. `unit_triangle_circumradius_sq` proves that its circumradius squared is exactly
+
+\[
+\frac13<1.
+\]
+
+## Statements not proved in this file
+
+The source deliberately separates incomplete or externally supplied statements from the proved API.
+
+### Main problem and literature statements
+
+The following remain `sorry` in this module:
+
+- `erdos_1066` — the open problem itself;
+- `erdos_1066.variants.limit_exists` — existence of the asymptotic limit;
+- the Pollack, Swanepoel, and Pach–Tóth literature bounds;
+- the disjoint-translate reduction used to turn finite constructions into asymptotic upper bounds.
+
+### Geometric completion steps
+
+Three local geometric statements are also unfinished:
+
+- `lattice_subset_ratio_ge_one_third` — packaging the lattice coloring as the required total coloring statement;
+- `triangularLattice_covering_radius` — the covering-radius theorem for the triangular lattice;
+- `two_grains_not_admissible` — the corresponding geometric consequence.
+
+The degree-six rigidity route was not formalized in this module.
+
+## Axiom audit
+
+The proved declarations were checked with `#print axioms`. Their reported footprint is the standard Mathlib classical base
+
+```text
+[propext, Classical.choice, Quot.sound]
 ```
 
-Toolchain: `leanprover/lean4:v4.27.0`, Mathlib `v4.27.0` (pre-built oleans present in
-`.lake/packages/mathlib/.lake/build/lib`). A full-Mathlib import takes roughly 10–15 minutes on
-this Windows box. A clean run prints only `declaration uses 'sorry'` warnings, one per `sorry`
-listed above, plus `linter.style.moduleDocstring` warnings for the `/-! ### ... -/` section
-headers (cosmetic; silence with `set_option linter.style.moduleDocstring false` if upstreaming).
+with no project-declared axiom and no dependence on the unfinished declarations above.
 
-`bun oracle/scripts/lean-verify.ts --lean-path oracle/math/EG1066Formal/Erdos1066.lean
---project-root oracle/runtime/state/formal-conjectures-checkout` will exit **non-zero** — by
-design, since that gate fails on any `sorry` leakage and this file intentionally contains `sorry`
-for the open problem. That is the expected outcome, not a failure of the deliverable.
+The module as a whole contains `sorry` because it also stores the open conjecture, literature statements, and unfinished geometric lemmas. Proof status should therefore be read declaration-by-declaration rather than inferred from compilation of the whole file.
 
----
+## Build environment
 
-## If this is upstreamed
+The historical source was developed against Lean `v4.27.0` and the corresponding Mathlib/FormalConjectures checkout. The public repository now also contains its own top-level Lean project files; see the repository root for the current build entry point.
 
-To contribute to FormalConjectures, copy `Erdos1066.lean` to
-`FormalConjectures/ErdosProblems/1066.lean`, change the copyright header to
-`Copyright 2026 The Formal Conjectures Authors` per their CLA, and drop the barrier lemmas that
-are not part of the problem statement (or keep them as `@[category API]` — the corpus does carry
-API lemmas, e.g. `unitDistanceCounts_BddAbove` in `90.lean`).
+The original source was written in FormalConjectures style, including its category/AMS attributes and `erdos_1066.variants.*` namespace structure.
+
+## Formalization provenance
+
+At the time this file was written in July 2026, the checked FormalConjectures Erdős-problem directory did not contain a `1066.lean` entry. That observation is retained as provenance; it is not used here as a global priority claim.
+
+Author: Jared Wilder.
